@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String     @id @default(cuid())
+  name              String?
+  email             String     @unique
+  defaultInputLang  String     @default("en")
+  defaultOutputLang String     @default("en")
+  createdAt         DateTime   @default(now())
+
+  sessions          Session[]
+  rooms             RoomMember[]
+  messages          Message[]  @relation("MessageSender")
+}
+
+model Room {
+  id         String       @id @default(cuid())
+  name       String
+  isPrivate  Boolean      @default(false)
+  createdBy  String
+  createdAt  DateTime     @default(now())
+
+  members    RoomMember[]
+  messages   Message[]
+}
+
+model RoomMember {
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  room     Room     @relation(fields: [roomId], references: [id])
+
+  @@id([roomId, userId])
+}
+
+model Message {
+  id            String        @id @default(cuid())
+  roomId        String
+  senderId      String
+  textOriginal  String
+  langOriginal  String
+  timestamp     DateTime      @default(now())
+
+  translations  Translation[]
+  sender        User          @relation("MessageSender", fields: [senderId], references: [id])
+  room          Room          @relation(fields: [roomId], references: [id])
+}
+
+model Translation {
+  id             String   @id @default(cuid())
+  messageId      String
+  targetLang     String
+  textTranslated String
+  provider       String
+  latencyMs      Int
+  createdAt      DateTime @default(now())
+
+  message        Message  @relation(fields: [messageId], references: [id])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+
+  user         User     @relation(fields: [userId], references: [id])
+}
