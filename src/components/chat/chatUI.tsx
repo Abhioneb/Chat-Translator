@@ -19,7 +19,7 @@ type Message = {
 export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const socketRef = useRef<Socket>();
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     socketRef.current = io({ path: '/api/socket_io', transports: ['websocket'] });
