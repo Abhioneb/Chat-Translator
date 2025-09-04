@@ -1,6 +1,7 @@
 // src/components/ui/Input.tsx
 import { InputHTMLAttributes } from 'react';
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
+
+export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}

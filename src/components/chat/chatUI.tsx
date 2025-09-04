@@ -3,11 +3,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ChatContainer } from '@/components/ui/ChatContainer';
-import { ChatHeader } from '@/components/ui/ChatHeader';
-import { ChatFooter } from '@/components/ui/ChatFooter';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import ChatFooter from "@/components/ui/ChatFooter";
+import ChatHeader from "@/components/ui/ChatHeader";
+import ChatContainer from "@/components/ui/ChatContainer";
 import MessageBubble from './MessageBubble';
 
 type Message = {
@@ -19,7 +17,7 @@ type Message = {
 
 export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(true);
   const socketRef: React.MutableRefObject<Socket | null> = useRef(null);
@@ -53,22 +51,27 @@ export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
 
   // 2) Wire up Socket.IO + merge in translations
   useEffect(() => {
-    const socket = io({ path: '/api/socket_io', transports: ['websocket'] });
+    const socket = io({
+      path: '/api/socket_io',
+      transports: ['websocket'],
+      upgrade: false,
+    });
+    
     socketRef.current = socket;
     socket.emit('join_room', roomId);
 
     // a) receive the raw message
-    socket.on('receive_message', (payload: { id: string; text: string }) => {
-      setMessages(msgs => [
-        ...msgs,
-        {
-          id: payload.id,
-          original: payload.text,
-          translated: null,
-          sender: 'bot',
-        },
-      ]);
-    });
+    socket.on('receive_message', (payload: { id: string; original: string }) => {
+    setMessages(msgs => [
+      ...msgs,
+      {
+        id: payload.id,
+        original: payload.original, 
+        translated: null,
+        sender: 'bot',
+      },
+    ]);
+  });
 
     // b) receive its translation later
     socket.on(
@@ -127,15 +130,15 @@ export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
     const id = crypto.randomUUID();
 
     // a) Optimistic UI
-    setMessages(msgs => [
+    setMessages((msgs) => [
       ...msgs,
-      { id, original: input, translated: null, sender: 'user' },
+      { id, original: input, translated: null, sender: "user" },
     ]);
 
-    // b) Emit with 'to' field on payload (make sure ChatUI tracks targetLang)
-    socketRef.current.emit('send_message', {
+    // b) Emit with 'to' field on payload 
+    socketRef.current.emit("send_message", {
       roomId,
-      payload: { id, text: input, /* to: targetLang */ },
+      payload: { id, text: input, to: "fr" },
     });
 
     setInput('');
@@ -143,9 +146,7 @@ export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
 
   return (
     <ChatContainer>
-      <ChatHeader>
-        <h2 className="text-lg font-semibold">Chat</h2>
-      </ChatHeader>
+      <ChatHeader roomName={roomId} />   
 
       {/* Load more / empty state */}
       <div className="px-4 py-2 text-center">
@@ -158,27 +159,21 @@ export default function ChatUI({ roomId = 'test-room' }: { roomId?: string }) {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.map(msg => (
+        {messages.map((msg) => (
           <MessageBubble
             key={msg.id}
-            message={{
-              original: msg.original,
-              translated: msg.translated ?? '…translating',
-              sender: msg.sender,
-            }}
+            sender={msg.sender}
+            text={msg.original}
+            translated={msg.translated ?? "…translating"}
           />
         ))}
       </div>
 
-      <ChatFooter>
-        <Input
-          placeholder="Type your message…"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
-        />
-        <Button onClick={handleSend}>Send</Button>
-      </ChatFooter>
+      <ChatFooter
+        input={input}
+        setInput={setInput}
+        onSend={handleSend}
+      />
     </ChatContainer>
-  );
+    );
 }

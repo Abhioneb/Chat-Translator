@@ -21,26 +21,24 @@ const translationResponseSchema = z.object({
 const logger: Logger = console as any;
 
 // 3) The actual translation call, with Zod validation
-async function translateText(text: string, to: string): Promise<string> {
+async function translateText(text: string, to: string, from = 'auto'): Promise<string> {
   const res = await axios.post(
     env.TRANSLATION_API_URL,
     {
       q: text,
+      source: from, 
       target: to,
-      format: 'text',
-      key: env.TRANSLATION_API_KEY,
+      format: 'text', 
     },
     { timeout: 10_000 }
   );
 
-  // Validate shape
-  const parsed = translationResponseSchema.safeParse(res.data);
-  if (!parsed.success) {
-    logger.error({ err: parsed.error, data: res.data }, 'Invalid translation response');
-    throw new Error('Unexpected translation API response');
+  if (!res.data?.translatedText) {
+    logger.error({ data: res.data }, 'Invalid LibreTranslate response');
+    throw new Error('Unexpected LibreTranslate API response');
   }
 
-  return parsed.data.data.translations[0].translatedText;
+  return res.data.translatedText;
 }
 
 // 4) Create the BullMQ worker

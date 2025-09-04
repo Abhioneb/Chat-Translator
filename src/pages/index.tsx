@@ -1,8 +1,17 @@
 import { NextPage } from 'next';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const Home: NextPage = () => {
   const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/chat'); // 👈 redirect to chat
+    }
+  }, [status, router]);
 
   if (status === 'loading') {
     return <p className="flex items-center justify-center h-screen">Loading…</p>;
@@ -21,20 +30,7 @@ const Home: NextPage = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-8">
-      <h1 className="text-3xl font-bold mb-4">
-        Welcome, {session.user?.name || session.user?.email}!
-      </h1>
-      <p className="mb-6 text-gray-600">You’re now signed in to Easy Chat.</p>
-      <button
-        onClick={() => signOut()}
-        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-      >
-        Sign Out
-      </button>
-    </div>
-  );
+  return null; // 👈 you’ll never see this, because authenticated users get redirected
 };
 
 export default Home;
